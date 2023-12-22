@@ -38,8 +38,16 @@
             <div class="game_score">0</div>
             <div class="game_score">0</div>
         </div>
+
         <canvas id="table" width="750px" height="500px"></canvas>
     </div>
+
+    <script type="module">
+        import gameBuilder from './components/gameBuilder.js';
+        const gamebuilder = gameBuilder();
+
+        gameBuilder.buildGame();
+    </script>
 </body>
 
 </html>
