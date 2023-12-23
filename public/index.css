@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css?family=Inter&display=swap');
+
+body {
+    background-color: #27374D;
+}
+
+.input-default div {
+    color: #DDE6ED;
+    font-family: Inter;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 20px;
+    padding-bottom: 5px;
+}
+
+.input-default input {
+    width: 100%;
+    height: 48px;
+    border-radius: 8px;
+    border: 1px solid #526D82;
+    background: #9DB2BF;
+    color: #27374D;
+    font-family: Inter;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 24px;
+    padding: 10px;
+}
+
+.input-default input:focus {
+    outline: 2px solid #9DB2BF;
+}
+
+.input-default input:disabled {
+    opacity: 0.5;
+}
+
+.button-default {
+    min-width: 50px;
+    height: 38px;
+    border-radius: 50px;
+    background: #526D82;
+    color: #DDE6ED;
+    font-family: Inter;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 0px 25px;
+    border: none;
+    cursor: pointer;
+}
+
+.button-default:hover {
+    opacity: 0.8;
+}
+
+.home {
+    max-width: 750px;
+    margin: 0 auto;
+    padding-top: 67px;
+}
+
+.home .home_logo {
+    text-align: center;
+    margin-bottom: 46px;
+}
+
+.home .home_nickname {
+    max-width: 380px;
+    height: 150px;
+    border-radius: 16px;
+    border: 4px solid #526D82;
+    background: #27374D;
+    margin: 0 auto;
+    padding: 35px;
+}
+
+.home .home_action {
+    margin-top: 38px;
+    width: 100%;
+}
+
+.game {
+    max-width: 750px;
+    margin: 0 auto;
+    display: none;
+}
+
+
+.game .game_scoreboard {
+    display: grid;
+    grid-template-columns: 50% 50%;
+    justify-content: center;
+    font-size: 80px;
+    text-align: center;
+    color: #DDE6ED;
+    margin-top: 5%;
+}
+
+.game #table {
+    border: 4px solid #9DB2BF;
+    background-color: #526D82;
+    box-shadow: 0px 6px 20px 7px #141e25;
+}
