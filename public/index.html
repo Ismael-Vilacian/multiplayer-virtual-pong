@@ -5,6 +5,7 @@
     <title>Virtual pong</title>
 
     <link rel="stylesheet" type="text/css" href="index.css" media="screen" />
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 
 <body>
@@ -27,14 +28,33 @@
         <div class="game_logo">
             <img width="132px" src="./assets/img/logo.svg" alt="logo">
         </div>
+
+        <div class="game_score">
+            <div class="game_score-p1"></div>
+            <div class="game_score-p2"></div>
+        </div>
+        <canvas id="table" width="742px" height="500px"></canvas>
     </div>
 
     <script type="module">
         import gameBuilder from './gameBuilder.js';
         const game = gameBuilder();
-    
+
         const buttonStart = document.querySelector('.home_action');
-        buttonStart.addEventListener('click', () => game.init());
+        buttonStart.addEventListener('click', () => {
+            
+            const home = document.querySelector('.home');
+            home.setAttribute('style', 'display: none');
+
+            const game = document.querySelector('.game');
+            game.setAttribute('style', 'display: block');
+
+            const socket = io()
+            socket.on('connect', () => {
+                const playerId = socket.id
+                console.log(`Player connected on client: ${playerId}`)
+            });
+        });
     </script>
 </body>
 
