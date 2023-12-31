@@ -17,7 +17,7 @@
         <div class="home_nickname">
             <div class="input-default">
                 <div>Nickname</div>
-                <input type="text">
+                <input id="nickname" type="text">
             </div>
 
             <button class="home_action button-default">Start</button>
@@ -30,30 +30,53 @@
         </div>
 
         <div class="game_score">
-            <div class="game_score-p1"></div>
-            <div class="game_score-p2"></div>
+            <div class="game_score-p1">
+                <div id="name_player-1"></div>
+            </div>
+            <div class="game_score-p2">
+                <div id="name_player-2"></div>
+            </div>
         </div>
-        <canvas id="table" width="742px" height="500px"></canvas>
+
+        <div class="game_container-tab">
+            <canvas id="table" width="742px" height="500px"></canvas>
+        </div>
     </div>
 
     <script type="module">
         import gameBuilder from './gameBuilder.js';
+        import renderScreen from './render-screen.js'
         const game = gameBuilder();
 
         const buttonStart = document.querySelector('.home_action');
         buttonStart.addEventListener('click', () => {
-            
+            const nickname = document.querySelector('#nickname');
             const home = document.querySelector('.home');
             home.setAttribute('style', 'display: none');
 
-            const game = document.querySelector('.game');
-            game.setAttribute('style', 'display: block');
+            const gameTable = document.querySelector('.game');
+            gameTable.setAttribute('style', 'display: block');
 
-            const socket = io()
+            const socket = io();
             socket.on('connect', () => {
-                const playerId = socket.id
-                console.log(`Player connected on client: ${playerId}`)
+                const playerId = socket.id;
+                socket.emit('playerInfo', { nickname: nickname.value });
+
+                const screen = document.getElementById('table');
+                renderScreen(screen, game, requestAnimationFrame, playerId);
             });
+
+            socket.on('setup', (state) => {
+                const playerId = socket.id;
+                game.setState(state);
+
+                let index = 1;
+                for (const playerId in state.players) {
+                    const playerName = document.getElementById(`name_player-${index}`);
+                    playerName.textContent = state.players[playerId].nickname;
+                    index++;
+                }
+            })
         });
     </script>
 </body>
