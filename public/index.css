@@ -107,18 +107,34 @@ body {
     display: flex;
     justify-content: space-between;
     margin-top: 36px;
+    color: #526D82;
+    font-family: Inter;
+    font-size: 20px;
+    font-style: normal;
+    font-weight: 900;
+    line-height: normal;
 }
 
 .game .game_score .game_score-p1 {
-    width: 232px;
-    height: 57px;
+    width: 187px;
+    height: 37px;
     background: #9DB2BF;
     border-radius: 0px 70px 0px 0px;
+    display: flex;
+    padding-top: 20px;
+    justify-content: space-between;
+    padding-left: 15px;
+    padding-right: 30px;
 }
 
 .game .game_score .game_score-p2 {
-    width: 232px;
-    height: 57px;
-    background: #9DB2BF;
     border-radius: 70px 0px 0px 0px;
+    width: 187px;
+    height: 37px;
+    background: #9DB2BF;
+    display: flex;
+    padding-top: 20px;
+    justify-content: space-between;
+    padding-left: 15px;
+    padding-right: 30px;
 }
