@@ -48,6 +48,8 @@
     <script type="module">
         import gameBuilder from './gameBuilder.js';
         import renderScreen from './render-screen.js'
+        import createKeyboardController from './keyboard-controller.js'
+
         const game = gameBuilder();
 
         const buttonStart = document.querySelector('.home_action');
@@ -68,9 +70,16 @@
                 renderScreen(screen, game, requestAnimationFrame, playerId);
             });
 
+            const keyboardListener = createKeyboardController(document);
             socket.on('setup', (state) => {
                 const playerId = socket.id;
                 game.setState(state);
+                
+                keyboardListener.registerPlayerId(playerId)
+                keyboardListener.subscribe(game.movePlayer)
+                keyboardListener.subscribe((command) => {
+                    socket.emit('move-player', command)
+                })
 
                 buildScoreboard();
             });
@@ -86,6 +95,16 @@
                 console.log(`Receiving ${command.type} -> ${command.playerId}`);
                 game.removePlayer(command);
             });
+
+            socket.on('move-player', (command) => {
+                console.log(`Receiving ${command.type} -> ${command.playerId}`)
+
+                const playerId = socket.id
+
+                if (playerId !== command.playerId) {
+                    game.movePlayer(command)
+                }
+            })
 
             function buildScoreboard() {
                 for (const playerId in game.state.players) {
