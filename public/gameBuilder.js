@@ -5,13 +5,13 @@ export default function buildGame() {
     }
 
     function addPlayer(command) {
-        
+
         if (Object.keys(state.players).length == 1) {
             const order = Object.values(state.players)[0].order;
             state.order = order == 1 ? 2 : 1;
         }
-        else { 
-            state.order = 1; 
+        else {
+            state.order = 1;
         }
 
         const playerId = command.playerId;
@@ -35,8 +35,8 @@ export default function buildGame() {
     }
 
     function removePlayer(command) {
-
         const playerId = command.playerId;
+
         delete state.players[playerId];
 
         notifyAll({
@@ -61,12 +61,39 @@ export default function buildGame() {
         Object.assign(state, newState);
     }
 
+    function movePlayer(command) {
+        notifyAll(command)
+        
+        const moves = {
+            ArrowUp(player) {
+                if (player.y - 5 >= 0) {
+                    player.y = player.y - 5
+                }
+            },
+            ArrowDown(player) {
+                if (player.y + 5 < 435) {
+                    player.y = player.y + 5
+                }
+            }
+        }
+
+        const keyPressed = command.keyPressed
+        const playerId = command.playerId
+        const player = state.players[playerId]
+        const moveFunction = moves[keyPressed]
+
+        if (player && moveFunction) {
+            moveFunction(player)
+        }
+    }
+
     return {
         addPlayer,
         setState,
         removePlayer,
         subscribe,
         notifyAll,
+        movePlayer,
         state,
     }
 }
