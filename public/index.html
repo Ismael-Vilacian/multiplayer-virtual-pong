@@ -61,7 +61,7 @@
         import createKeyboardController from './keyboard-controller.js'
 
         const game = gameBuilder();
-
+        
         const buttonStart = document.querySelector('.home_action');
         buttonStart.addEventListener('click', () => {
             const nickname = document.querySelector('#nickname');
@@ -106,15 +106,21 @@
                 game.removePlayer(command);
             });
 
-            socket.on('move-player', (command) => {
+            socket.on('move-player', (command) => {              
                 console.log(`Receiving ${command.type} -> ${command.playerId}`)
-
                 const playerId = socket.id
 
                 if (playerId !== command.playerId) {
                     game.movePlayer(command)
                 }
-            })
+            });
+
+            socket.on('waiting-for-player', (remove) => {
+                if (remove) {
+                    const waitingForPlayerText = document.querySelector('.waiting-for-player');
+                    waitingForPlayerText.setAttribute('style', 'display: none');
+                }
+            });
 
             function buildScoreboard() {
                 for (const playerId in game.state.players) {

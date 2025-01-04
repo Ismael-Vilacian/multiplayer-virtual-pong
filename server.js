@@ -23,8 +23,12 @@ sockets.on('connection', (socket) => {
         console.log(`> Player connected: ${playerId} - ${nickname}`);
 
         game.addPlayer({ playerId: playerId, nickname: nickname });
+
+        if (Object.keys(game.state.players).length > 1) {
+            sockets.emit('waiting-for-player', { remove: true });
+        }
     });
-    
+
     socket.emit('setup', game.state);
 
     socket.on('disconnect', () => {
@@ -35,7 +39,7 @@ sockets.on('connection', (socket) => {
     socket.on('move-player', (command) => {
         command.playerId = playerId
         command.type = 'move-player'
-        
+
         game.movePlayer(command)
     })
 })
