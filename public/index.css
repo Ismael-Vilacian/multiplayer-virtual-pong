@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css?family=Inter&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap');
 
 body {
     background-color: #27374D;
@@ -138,3 +139,102 @@ body {
     padding-left: 15px;
     padding-right: 30px;
 }
+
+.waiting-for-player {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+    background: #27374d6b;
+    backdrop-filter: blur(3px);
+}
+
+.content {
+    position: absolute;
+    top: calc(50% - 100px);
+    right: calc(50% - 100px);
+    transform: translate(-50%, -50%);
+    display: block;
+  }
+  
+  .paddle{
+    height:40px;
+    width:3px;
+    background-color:white;
+    position:relative;
+  }
+  
+  .player_one{
+    left:-180px;
+    animation: movePaddleOne 4s infinite;
+  }
+  
+  .player_two{
+    left:20px;
+    animation: movePaddleTwo 4s infinite;
+  }
+  
+  .ball{
+    position:relative;
+    height:5px;
+    width:5px;
+    border-radius:50%;
+    background-color:white;
+    animation: moveBall 4s infinite linear;
+  }
+
+  .waiting-for-player-text {
+    position: absolute;
+    width: 244px;
+    left: -200px;
+    font-size: 26px;
+    top: 163px;
+    color: white;
+    font-family: "Pixelify Sans", sans-serif;
+  }
+  
+  @keyframes movePaddleOne{
+    0%, 100%{
+      transform:translate(0px, 100px);
+    }
+    25%{
+      transform:translate(0px, 0px);
+    }
+    50%{
+      transform:translate(0px, 0px);
+    }
+    75%{
+      transform:translate(0px, 100px);
+    }
+  }
+  
+  @keyframes movePaddleTwo{
+    0%, 100%{
+       transform:translate(0px,-50px);
+    }
+    25%{
+         transform:translate(0px,10px); 
+    }
+    50%{
+          transform:translate(0px,0px);
+    }
+    75%{
+          transform:translate(0px,50px);
+    } 
+  }
+  
+  @keyframes moveBall{
+     0%, 100%{
+      transform:translate(-180px, 30px);
+    }
+    25%{
+        transform:translate(18px, -25px);
+    }
+   50%{
+       transform:translate(-180px, -55px);
+    }
+    75%{
+      transform:translate(18px, 15px);
+    }
+  }
