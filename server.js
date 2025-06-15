@@ -73,13 +73,13 @@ sockets.on('connection', (socket) => {
             game.addPlayer({ playerId: nextInQueue.id, nickname: nextInQueue.nickname });
 
             if (Object.keys(game.state.players).length === 2) {
-                game.startNextGame(); 
+                game.startNextGame();
             }
         } else if (Object.keys(game.state.players).length < 2) {
-            game.state.transition.active = false; 
-            game.state.ball.velocityX = 0; 
+            game.state.transition.active = false;
+            game.state.ball.velocityX = 0;
             game.state.ball.velocityY = 0;
-            sockets.emit('update-game-transition', game.state.transition); 
+            sockets.emit('update-game-transition', game.state.transition);
         }
     });
 
@@ -87,6 +87,20 @@ sockets.on('connection', (socket) => {
         command.playerId = playerId;
         command.type = 'move-player';
         game.movePlayer(command);
+    });
+
+    socket.on('send-chat-message', (messageText) => {
+        let senderNickname = 'Anônimo';
+        const player = game.state.players[socket.id] || game.state.queue.find(p => p.id === socket.id);
+        if (player) {
+            senderNickname = player.nickname;
+        }
+
+        sockets.emit('new-chat-message', {
+            senderId: socket.id,
+            senderNickname: senderNickname,
+            text: messageText,
+        });
     });
 });
 

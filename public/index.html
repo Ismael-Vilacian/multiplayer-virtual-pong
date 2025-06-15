@@ -48,7 +48,7 @@
     <div class="waiting-queue">
         <h4>Fila de Espera</h4>
         <ul id="queue-list">
-            </ul>
+        </ul>
     </div>
 
     <div id="game-transition-overlay" class="game-transition" style="display: none;">
@@ -59,6 +59,30 @@
         </div>
     </div>
 
+    <div id="chat-container" class="chat-container closed">
+        <button id="chat-toggle" class="chat-toggle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span id="chat-notification-badge" class="chat-notification-badge"></span>
+        </button>
+
+        <div class="chat-window">
+            <div class="chat-header">
+                <h3>Chat do Jogo</h3>
+            </div>
+            <div id="chat-messages" class="chat-messages">
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Digite sua mensagem...">
+                <button id="send-chat-button">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="chat-notification-sound" src="/assets/audios/notification.mp3" preload="auto"></audio>
+
     <script type="module">
         import gameBuilder from './gameBuilder.js';
         import renderScreen from './render-screen.js';
@@ -68,48 +92,51 @@
         const socket = io();
 
         const queueList = document.getElementById('queue-list');
-        const transitionOverlay = document.getElementById('game-transition-overlay');
-        const newPlayerNameSpan = document.getElementById('new-player-name');
-        const countdownTimerDiv = document.getElementById('countdown-timer');
         const scoreP1El = document.getElementById('score_player-1');
         const scoreP2El = document.getElementById('score_player-2');
         const nameP1El = document.getElementById('name_player-1');
         const nameP2El = document.getElementById('name_player-2');
-        
-        function updatePlayersAndQueueUI(data) {
-            if (!data) return;
+        const chatContainer = document.getElementById('chat-container');
+        const chatToggle = document.getElementById('chat-toggle');
+        const chatNotificationBadge = document.getElementById('chat-notification-badge');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const sendChatButton = document.getElementById('send-chat-button');
+        const notificationSound = document.getElementById('chat-notification-sound');
 
-            if (data.score && scoreP1El && scoreP2El) {
-                scoreP1El.textContent = data.score[1] || 0;
-                scoreP2El.textContent = data.score[2] || 0;
+        function addMessageToChat({ senderId, senderNickname, text }) {
+            const messageBubble = document.createElement('div');
+            messageBubble.classList.add('message-bubble');
+
+            const senderNameEl = document.createElement('div');
+            senderNameEl.classList.add('message-sender-name');
+
+            const messageTextEl = document.createElement('div');
+            messageTextEl.classList.add('message-text');
+            messageTextEl.textContent = text;
+
+            if (senderId === socket.id) {
+                messageBubble.classList.add('sent');
+                senderNameEl.textContent = 'Você';
+            } else {
+                messageBubble.classList.add('received');
+                senderNameEl.textContent = senderNickname;
             }
 
-            if (data.players && nameP1El && nameP2El) {
-                nameP1El.textContent = '';
-                nameP2El.textContent = '';
-                for (const playerId in data.players) {
-                    const player = data.players[playerId];
-                    const nameEl = document.getElementById(`name_player-${player.order}`);
-                    if (nameEl) {
-                        nameEl.textContent = player.nickname;
-                    }
-                }
-            }
-            
-            if (data.queue && queueList) {
-                queueList.innerHTML = '';
-                data.queue.forEach(player => {
-                    const li = document.createElement('li');
-                    li.textContent = player.nickname;
-                    queueList.appendChild(li);
-                });
-            }
+            messageBubble.appendChild(senderNameEl);
+            messageBubble.appendChild(messageTextEl);
+            chatMessages.appendChild(messageBubble);
+
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
-        
+
         const buttonStart = document.querySelector('.home_action');
         buttonStart.addEventListener('click', () => {
             document.querySelector('.home').style.display = 'none';
             document.querySelector('.game').style.display = 'block';
+            document.getElementById('chat-container').style.display = 'block';
+
+            document.querySelector('.waiting-queue').style.display = 'block';
 
             const nickname = document.querySelector('#nickname');
             socket.emit('playerInfo', { nickname: nickname.value });
@@ -119,17 +146,43 @@
         });
 
         const keyboardListener = createKeyboardController(document);
-        
         keyboardListener.subscribe(game.movePlayer);
-        
-        keyboardListener.subscribe((command) => {
-            socket.emit('move-player', command);
+        keyboardListener.subscribe((command) => socket.emit('move-player', command));
+
+        chatToggle.addEventListener('click', () => {
+            chatContainer.classList.toggle('closed');
+            if (!chatContainer.classList.contains('closed')) {
+                chatNotificationBadge.style.display = 'none';
+            }
+        });
+
+        function sendChatMessage() {
+            const messageText = chatInput.value.trim();
+            if (messageText) {
+                socket.emit('send-chat-message', messageText);
+                chatInput.value = '';
+            }
+        }
+        sendChatButton.addEventListener('click', sendChatMessage);
+        chatInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
         });
 
         socket.on('setup', (state) => {
             game.setState(state);
             keyboardListener.registerPlayerId(socket.id);
             updatePlayersAndQueueUI(state);
+        });
+
+        socket.on('new-chat-message', (data) => {
+            addMessageToChat(data);
+
+            if (chatContainer.classList.contains('closed') && data.senderId !== socket.id) {
+                chatNotificationBadge.style.display = 'block';
+                notificationSound.play().catch(e => console.error("Erro ao tocar notificação:", e));
+            }
         });
 
         socket.on('update-players-and-queue', (data) => {
@@ -142,7 +195,9 @@
         socket.on('update-game-transition', (data) => {
             if (!data || !data.transition) return;
             game.state.transition = data.transition;
-
+            const transitionOverlay = document.getElementById('game-transition-overlay');
+            const newPlayerNameSpan = document.getElementById('new-player-name');
+            const countdownTimerDiv = document.getElementById('countdown-timer');
             if (data.transition.active) {
                 newPlayerNameSpan.textContent = data.transition.newPlayerNickname || 'O próximo';
                 countdownTimerDiv.textContent = data.transition.countdown;
@@ -151,7 +206,7 @@
                 transitionOverlay.style.display = 'none';
             }
         });
-        
+
         socket.on('update-score', (data) => {
             if (data.score) {
                 game.state.score = data.score;
@@ -159,16 +214,34 @@
                 scoreP2El.textContent = data.score[2] || 0;
             }
         });
-        
-        socket.on('move-ball', (data) => {
-            if (data.ball) game.state.ball = data.ball;
-        });
-        
-        socket.on('move-player', (command) => {
-            if (socket.id !== command.playerId) {
-                game.movePlayer(command);
+
+        socket.on('move-ball', (data) => { if (data.ball) game.state.ball = data.ball; });
+        socket.on('move-player', (command) => { if (socket.id !== command.playerId) { game.movePlayer(command); } });
+
+        function updatePlayersAndQueueUI(data) {
+            if (!data) return;
+            if (data.score && scoreP1El && scoreP2El) {
+                scoreP1El.textContent = data.score[1] || 0;
+                scoreP2El.textContent = data.score[2] || 0;
             }
-        });
+            if (data.players && nameP1El && nameP2El) {
+                nameP1El.textContent = '';
+                nameP2El.textContent = '';
+                for (const playerId in data.players) {
+                    const player = data.players[playerId];
+                    const nameEl = document.getElementById(`name_player-${player.order}`);
+                    if (nameEl) nameEl.textContent = player.nickname;
+                }
+            }
+            if (data.queue && queueList) {
+                queueList.innerHTML = '';
+                data.queue.forEach(player => {
+                    const li = document.createElement('li');
+                    li.textContent = player.nickname;
+                    queueList.appendChild(li);
+                });
+            }
+        }
     </script>
 </body>
 
