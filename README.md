@@ -58,3 +58,7 @@ Este projeto foi amplamente inspirado e guiado pelos excelentes tutoriais sobre 
 
   - **Canal:** [Filipe Deschamps](https://www.youtube.com/@FilipeDeschamps)
   - **Playlist de Referência (WebSocket):** [Como Criar um Jogo Multiplayer para Web](https://www.youtube.com/watch?v=0sTfIZvjYJk&list=PLMdYygf53DP5SVQQrkKCVWDS0TwYLVitL)
+
+## Licença
+
+Este projeto está licenciado sob a Licença MIT. Veja o arquivo [LICENSE](./LICENSE) para mais detalhes.
