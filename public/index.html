@@ -9,6 +9,8 @@
 </head>
 
 <body>
+    <div id="toast-container"></div>
+
     <div class="home">
         <div class="home_logo">
             <img src="./assets/img/logo.svg" alt="logo">
@@ -19,15 +21,28 @@
                 <div>Nickname</div>
                 <input id="nickname" type="text">
             </div>
+        </div>
 
-            <button class="home_action button-default">Start</button>
+        <div class="rooms-section">
+            <h2>Salas Disponíveis</h2>
+            <div id="room-list" class="room-list">
+            </div>
+        </div>
+
+        <div class="home_actions">
+            <button id="create-room-btn" class="button-default">Criar Sala</button>
+            <button id="join-room-btn" class="button-default">Juntar-se com Código</button>
         </div>
     </div>
 
     <div class="game">
-        <div class="game_logo">
-            <img width="132px" src="./assets/img/logo.svg" alt="logo">
+        <div class="header-info">
+            <div class="game_logo">
+                <img width="132px" src="./assets/img/logo.svg" alt="logo">
+            </div>
+            <div id="room-code-display" class="room-code-display"></div>
         </div>
+
 
         <div class="game_score">
             <div class="game_score-p1">
@@ -41,7 +56,7 @@
         </div>
 
         <div class="game_container-tab">
-            <canvas id="table" width="742px" height="500px"></canvas>
+            <canvas id="table" width="742" height="500"></canvas>
         </div>
     </div>
 
@@ -59,7 +74,58 @@
         </div>
     </div>
 
-    <div id="chat-container" class="chat-container closed">
+    <div id="create-room-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Criar Nova Sala</h2>
+            <div class="input-default">
+                <div>Nome da Sala</div>
+                <input id="room-name-input" type="text">
+            </div>
+            <div class="input-default">
+                <div>Tipo de Sala</div>
+                <select id="room-type-select">
+                    <option value="public">Pública</option>
+                    <option value="private">Privada</option>
+                </select>
+            </div>
+            <div id="password-field" class="input-default" style="display: none;">
+                <div>Senha</div>
+                <input id="room-password-input" type="password">
+            </div>
+            <button id="confirm-create-room-btn" class="button-default">Criar</button>
+        </div>
+    </div>
+
+    <div id="join-room-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Juntar-se a uma Sala</h2>
+            <div class="input-default">
+                <div>Código da Sala</div>
+                <input id="join-code-input" type="text">
+            </div>
+            <div id="join-password-field" class="input-default" style="display: none;">
+                <div>Senha da Sala</div>
+                <input id="join-password-input" type="password">
+            </div>
+            <button id="confirm-join-room-btn" class="button-default">Juntar-se</button>
+        </div>
+    </div>
+
+    <div id="private-room-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2 id="private-room-name"></h2>
+            <div class="input-default">
+                <div>Senha da Sala</div>
+                <input id="private-room-password-input" type="password">
+            </div>
+            <button id="confirm-join-private-btn" class="button-default">Entrar</button>
+        </div>
+    </div>
+
+    <div id="chat-container" class="chat-container closed" style="display: none;">
         <button id="chat-toggle" class="chat-toggle">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -82,20 +148,41 @@
     </div>
 
     <audio id="chat-notification-sound" src="/assets/audios/notification.mp3" preload="auto"></audio>
+    <audio id="error-sound" src="/assets/audios/error.mp3" preload="auto"></audio>
 
     <script type="module">
         import gameBuilder from './gameBuilder.js';
         import renderScreen from './render-screen.js';
         import createKeyboardController from './keyboard-controller.js';
 
-        const game = gameBuilder();
+        // --- Instâncias Globais ---
         const socket = io();
+        const game = gameBuilder();
+        const keyboardListener = createKeyboardController(document);
 
+        // --- Elementos do DOM ---
+        const nicknameInput = document.getElementById('nickname');
+        const createRoomBtn = document.getElementById('create-room-btn');
+        const joinRoomBtn = document.getElementById('join-room-btn');
+        const createRoomModal = document.getElementById('create-room-modal');
+        const joinRoomModal = document.getElementById('join-room-modal');
+        const roomTypeSelect = document.getElementById('room-type-select');
+        const passwordField = document.getElementById('password-field');
+        const confirmCreateRoomBtn = document.getElementById('confirm-create-room-btn');
+        const confirmJoinRoomBtn = document.getElementById('confirm-join-room-btn');
+        const roomList = document.getElementById('room-list');
+        const roomNameInput = document.getElementById('room-name-input');
+        const roomPasswordInput = document.getElementById('room-password-input');
+        const joinCodeInput = document.getElementById('join-code-input');
+        const joinPasswordField = document.getElementById('join-password-field');
+        const joinPasswordInput = document.getElementById('join-password-input');
+        const toastContainer = document.getElementById('toast-container');
         const queueList = document.getElementById('queue-list');
-        const scoreP1El = document.getElementById('score_player-1');
-        const scoreP2El = document.getElementById('score_player-2');
-        const nameP1El = document.getElementById('name_player-1');
-        const nameP2El = document.getElementById('name_player-2');
+        const roomCodeDisplay = document.getElementById('room-code-display');
+        const privateRoomModal = document.getElementById('private-room-modal');
+        const privateRoomNameEl = document.getElementById('private-room-name');
+        const privateRoomPasswordInput = document.getElementById('private-room-password-input');
+        const confirmJoinPrivateBtn = document.getElementById('confirm-join-private-btn');
         const chatContainer = document.getElementById('chat-container');
         const chatToggle = document.getElementById('chat-toggle');
         const chatNotificationBadge = document.getElementById('chat-notification-badge');
@@ -103,18 +190,131 @@
         const chatInput = document.getElementById('chat-input');
         const sendChatButton = document.getElementById('send-chat-button');
         const notificationSound = document.getElementById('chat-notification-sound');
+        const errorSound = document.getElementById('error-sound');
 
-        function addMessageToChat({ senderId, senderNickname, text }) {
+        // --- Variáveis de Estado ---
+        let currentRoomId = null;
+        let targetPrivateRoomId = null;
+
+        // --- Configuração dos Controles ---
+        keyboardListener.subscribe((command) => {
+            if (currentRoomId) {
+                game.movePlayer(command);
+                socket.emit('move-player', {
+                    ...command,
+                    roomId: currentRoomId
+                });
+            }
+        });
+
+        // --- Funções Auxiliares ---
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+
+            if (errorSound) {
+                errorSound.currentTime = 0;
+                errorSound.play().catch(e => console.error("Erro ao tocar som do toast:", e));
+            }
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        function validateNickname() {
+            if (!nicknameInput.value.trim()) {
+                showToast('Por favor, informe seu nome antes de continuar.');
+                return false;
+            }
+            return true;
+        }
+
+        // --- Lógica de UI (Modais e Chat) ---
+        createRoomBtn.addEventListener('click', () => {
+            if (validateNickname()) createRoomModal.style.display = 'block';
+        });
+
+        joinRoomBtn.addEventListener('click', () => {
+            if (validateNickname()) joinRoomModal.style.display = 'block';
+        });
+
+        createRoomModal.querySelector('.close-btn').addEventListener('click', () => {
+            createRoomModal.style.display = 'none';
+        });
+
+        joinRoomModal.querySelector('.close-btn').addEventListener('click', () => {
+            joinRoomModal.style.display = 'none';
+        });
+
+        privateRoomModal.querySelector('.close-btn').addEventListener('click', () => {
+            privateRoomModal.style.display = 'none';
+        });
+
+        roomTypeSelect.addEventListener('change', () => {
+            passwordField.style.display = roomTypeSelect.value === 'private' ? 'block' : 'none';
+        });
+
+        confirmCreateRoomBtn.addEventListener('click', () => {
+            const roomName = roomNameInput.value.trim();
+            if (!roomName) return showToast('Por favor, informe o nome da sala.');
+            const roomType = roomTypeSelect.value;
+            const password = roomPasswordInput.value;
+            if (roomType === 'private' && !password) return showToast('Por favor, informe uma senha para a sala privada.');
+
+            socket.emit('createRoom', {
+                name: roomName,
+                type: roomType,
+                password: password,
+                nickname: nicknameInput.value
+            });
+        });
+
+        joinCodeInput.addEventListener('blur', () => {
+            const roomCode = joinCodeInput.value.trim();
+            if (roomCode) {
+                socket.emit('checkRoomPassword', roomCode);
+            } else {
+                joinPasswordField.style.display = 'none';
+            }
+        });
+
+        confirmJoinRoomBtn.addEventListener('click', () => {
+            const roomCode = joinCodeInput.value.trim();
+            if (!roomCode) return showToast('Por favor, informe o código da sala.');
+            socket.emit('joinRoom', {
+                roomId: roomCode,
+                nickname: nicknameInput.value,
+                password: joinPasswordInput.value
+            });
+        });
+
+        confirmJoinPrivateBtn.addEventListener('click', () => {
+            const password = privateRoomPasswordInput.value;
+            if (!password) return showToast('Por favor, insira a senha.');
+            if (targetPrivateRoomId) {
+                socket.emit('joinRoom', {
+                    roomId: targetPrivateRoomId,
+                    nickname: nicknameInput.value,
+                    password: password
+                });
+            }
+        });
+
+        function addMessageToChat({
+            senderId,
+            senderNickname,
+            text
+        }) {
             const messageBubble = document.createElement('div');
             messageBubble.classList.add('message-bubble');
-
             const senderNameEl = document.createElement('div');
             senderNameEl.classList.add('message-sender-name');
-
             const messageTextEl = document.createElement('div');
             messageTextEl.classList.add('message-text');
             messageTextEl.textContent = text;
-
             if (senderId === socket.id) {
                 messageBubble.classList.add('sent');
                 senderNameEl.textContent = 'Você';
@@ -122,32 +322,22 @@
                 messageBubble.classList.add('received');
                 senderNameEl.textContent = senderNickname;
             }
-
             messageBubble.appendChild(senderNameEl);
             messageBubble.appendChild(messageTextEl);
             chatMessages.appendChild(messageBubble);
-
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        const buttonStart = document.querySelector('.home_action');
-        buttonStart.addEventListener('click', () => {
-            document.querySelector('.home').style.display = 'none';
-            document.querySelector('.game').style.display = 'block';
-            document.getElementById('chat-container').style.display = 'block';
-
-            document.querySelector('.waiting-queue').style.display = 'block';
-
-            const nickname = document.querySelector('#nickname');
-            socket.emit('playerInfo', { nickname: nickname.value });
-
-            const screen = document.getElementById('table');
-            renderScreen(screen, game, requestAnimationFrame, socket.id);
-        });
-
-        const keyboardListener = createKeyboardController(document);
-        keyboardListener.subscribe(game.movePlayer);
-        keyboardListener.subscribe((command) => socket.emit('move-player', command));
+        function sendChatMessage() {
+            const messageText = chatInput.value.trim();
+            if (messageText) {
+                socket.emit('send-chat-message', {
+                    text: messageText,
+                    roomId: currentRoomId
+                });
+                chatInput.value = '';
+            }
+        }
 
         chatToggle.addEventListener('click', () => {
             chatContainer.classList.toggle('closed');
@@ -156,45 +346,120 @@
             }
         });
 
-        function sendChatMessage() {
-            const messageText = chatInput.value.trim();
-            if (messageText) {
-                socket.emit('send-chat-message', messageText);
-                chatInput.value = '';
-            }
-        }
         sendChatButton.addEventListener('click', sendChatMessage);
         chatInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                sendChatMessage();
-            }
+            if (event.key === 'Enter') sendChatMessage();
         });
 
-        socket.on('setup', (state) => {
-            game.setState(state);
+        // --- Funções de Atualização de UI ---
+        function updateRoomList(rooms) {
+            roomList.innerHTML = '';
+            for (const roomId in rooms) {
+                const room = rooms[roomId];
+                const roomElement = document.createElement('div');
+                roomElement.className = 'room-item';
+                roomElement.innerHTML = `<span>${room.name} (${room.playerCount}/∞)</span>${room.type === 'private' ? '<span>&#128275;</span>' : ''}`;
+                roomElement.addEventListener('click', () => {
+                    if (validateNickname()) {
+                        if (room.type === 'private') {
+                            targetPrivateRoomId = roomId;
+                            privateRoomNameEl.textContent = `Entrar em: ${room.name}`;
+                            privateRoomPasswordInput.value = '';
+                            privateRoomModal.style.display = 'block';
+                            privateRoomPasswordInput.focus();
+                        } else {
+                            socket.emit('joinRoom', {
+                                roomId,
+                                nickname: nicknameInput.value
+                            });
+                        }
+                    }
+                });
+                roomList.appendChild(roomElement);
+            }
+        }
+
+        function updatePlayersAndQueueUI(data) {
+            if (!data) return;
+            const scoreP1El = document.getElementById('score_player-1');
+            const scoreP2El = document.getElementById('score_player-2');
+            const nameP1El = document.getElementById('name_player-1');
+            const nameP2El = document.getElementById('name_player-2');
+
+            if (data.score) {
+                scoreP1El.textContent = data.score[1] || 0;
+                scoreP2El.textContent = data.score[2] || 0;
+            }
+            if (data.players) {
+                nameP1El.textContent = '';
+                nameP2El.textContent = '';
+                for (const playerId in data.players) {
+                    const player = data.players[playerId];
+                    const nameEl = document.getElementById(`name_player-${player.order}`);
+                    if (nameEl) nameEl.textContent = player.nickname;
+                }
+            }
+            if (data.queue) {
+                queueList.innerHTML = '';
+                data.queue.forEach(player => {
+                    const li = document.createElement('li');
+                    li.textContent = player.nickname;
+                    queueList.appendChild(li);
+                });
+            }
+        }
+
+        // --- Manipuladores de Eventos do Socket ---
+        socket.on('roomList', updateRoomList);
+
+        socket.on('roomPasswordRequired', (isRequired) => {
+            joinPasswordField.style.display = isRequired ? 'block' : 'none';
+            if (!isRequired) joinPasswordInput.value = '';
+        });
+
+        socket.on('joinSuccess', (data) => {
+            currentRoomId = data.roomId;
+            game.setState(data.gameState);
+            updatePlayersAndQueueUI(data.gameState);
             keyboardListener.registerPlayerId(socket.id);
-            updatePlayersAndQueueUI(state);
+
+            document.querySelector('.home').style.display = 'none';
+            document.querySelector('.game').style.display = 'block';
+            document.querySelector('.waiting-queue').style.display = 'block';
+            chatContainer.style.display = 'block';
+            roomCodeDisplay.textContent = `Código da Sala: ${currentRoomId}`;
+
+            joinRoomModal.style.display = 'none';
+            createRoomModal.style.display = 'none';
+            privateRoomModal.style.display = 'none';
+
+            const screen = document.getElementById('table');
+            renderScreen(screen, game, requestAnimationFrame, socket.id);
+        });
+
+        socket.on('updateState', (newState) => {
+            game.setState(newState);
+            updatePlayersAndQueueUI(newState);
         });
 
         socket.on('new-chat-message', (data) => {
             addMessageToChat(data);
-
             if (chatContainer.classList.contains('closed') && data.senderId !== socket.id) {
                 chatNotificationBadge.style.display = 'block';
                 notificationSound.play().catch(e => console.error("Erro ao tocar notificação:", e));
             }
         });
 
-        socket.on('update-players-and-queue', (data) => {
-            if (data.players) game.state.players = data.players;
-            if (data.queue) game.state.queue = data.queue;
-            if (data.score) game.state.score = data.score;
-            updatePlayersAndQueueUI(data);
+        socket.on('error', (message) => {
+            showToast(message);
+            if (message.toLowerCase().includes('senha')) {
+                joinPasswordInput.value = '';
+                privateRoomPasswordInput.value = '';
+            }
         });
 
         socket.on('update-game-transition', (data) => {
             if (!data || !data.transition) return;
-            game.state.transition = data.transition;
             const transitionOverlay = document.getElementById('game-transition-overlay');
             const newPlayerNameSpan = document.getElementById('new-player-name');
             const countdownTimerDiv = document.getElementById('countdown-timer');
@@ -206,42 +471,6 @@
                 transitionOverlay.style.display = 'none';
             }
         });
-
-        socket.on('update-score', (data) => {
-            if (data.score) {
-                game.state.score = data.score;
-                scoreP1El.textContent = data.score[1] || 0;
-                scoreP2El.textContent = data.score[2] || 0;
-            }
-        });
-
-        socket.on('move-ball', (data) => { if (data.ball) game.state.ball = data.ball; });
-        socket.on('move-player', (command) => { if (socket.id !== command.playerId) { game.movePlayer(command); } });
-
-        function updatePlayersAndQueueUI(data) {
-            if (!data) return;
-            if (data.score && scoreP1El && scoreP2El) {
-                scoreP1El.textContent = data.score[1] || 0;
-                scoreP2El.textContent = data.score[2] || 0;
-            }
-            if (data.players && nameP1El && nameP2El) {
-                nameP1El.textContent = '';
-                nameP2El.textContent = '';
-                for (const playerId in data.players) {
-                    const player = data.players[playerId];
-                    const nameEl = document.getElementById(`name_player-${player.order}`);
-                    if (nameEl) nameEl.textContent = player.nickname;
-                }
-            }
-            if (data.queue && queueList) {
-                queueList.innerHTML = '';
-                data.queue.forEach(player => {
-                    const li = document.createElement('li');
-                    li.textContent = player.nickname;
-                    queueList.appendChild(li);
-                });
-            }
-        }
     </script>
 </body>
 

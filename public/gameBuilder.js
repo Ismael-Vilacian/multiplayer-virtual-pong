@@ -5,15 +5,23 @@ export default function buildGame() {
         players: {},
         queue: [],
         ball: {
-            x: 371, y: 250, width: 5, height: 5,
-            velocityX: 0, velocityY: 0 
+            x: 371,
+            y: 250,
+            width: 5,
+            height: 5,
+            velocityX: 0,
+            velocityY: 0
         },
-        score: { 1: 0, 2: 0 },
+        score: {
+            1: 0,
+            2: 0
+        },
         transition: {
             active: false,
             countdown: 5,
             newPlayerNickname: ''
-        }
+        },
+        roomId: null
     };
 
     const observers = [];
@@ -27,13 +35,16 @@ export default function buildGame() {
             observerFunction(command);
         }
     }
-    
+
     function setState(newState) {
         Object.assign(state, newState);
     }
-    
+
     function addPlayer(command) {
-        const { playerId, nickname } = command;
+        const {
+            playerId,
+            nickname
+        } = command;
 
         if (Object.keys(state.players).length < 2) {
             const order = Object.keys(state.players).length === 0 ? 1 : 2;
@@ -41,81 +52,106 @@ export default function buildGame() {
 
             state.players[playerId] = {
                 order: order,
-                x: positionX, y: 200,
+                x: positionX,
+                y: 200,
                 nickname: nickname,
                 id: playerId
             };
         } else {
-            state.queue.push({ id: playerId, nickname: nickname });
+            state.queue.push({
+                id: playerId,
+                nickname: nickname
+            });
         }
 
         notifyAll({
-            type: 'update-players-and-queue',
-            players: state.players,
-            queue: state.queue
+            type: 'updateState',
+            ...state
         });
     }
 
     function removePlayer(command) {
-        const { playerId } = command;
-        
-        delete state.players[playerId];
+        const {
+            playerId
+        } = command;
+        const wasActive = !!state.players[playerId];
 
-        state.queue = state.queue.filter(p => p.id !== playerId);
-        
+        if (wasActive) {
+            delete state.players[playerId];
+        } else {
+            state.queue = state.queue.filter(p => p.id !== playerId);
+        }
+
         notifyAll({
-            type: 'update-players-and-queue',
-            players: state.players,
-            queue: state.queue
+            type: 'updateState',
+            ...state
         });
+
+        return wasActive;
     }
 
-    function startNextGame(loserId = null) {
+    function startNextGame(loserId = null, isDisconnect = false) {
         state.ball.velocityX = 0;
         state.ball.velocityY = 0;
 
-        if (loserId && state.queue.length > 0) {
-            const loser = Object.values(state.players).find(p => p.id === loserId);
-            const nextPlayerInfo = state.queue.shift();
+        if (loserId) {
+            const loser = state.players[loserId];
+            if (loser) {
+                if (!isDisconnect) {
+                    state.queue.push({
+                        id: loser.id,
+                        nickname: loser.nickname
+                    });
+                }
+                delete state.players[loserId];
+            }
 
-            delete state.players[loserId];
-            
-            state.queue.push({ id: loser.id, nickname: loser.nickname });
+            if (state.queue.length > 0) {
+                const nextPlayerInfo = state.queue.shift();
+                const newPlayerOrder = loser ? loser.order : (Object.keys(state.players).length + 1);
+                const positionX = newPlayerOrder === 1 ? 4 : 732;
 
-            state.players[nextPlayerInfo.id] = {
-                ...loser,
-                id: nextPlayerInfo.id,
-                nickname: nextPlayerInfo.nickname
-            };
-            
-            state.transition.newPlayerNickname = nextPlayerInfo.nickname;
+                state.players[nextPlayerInfo.id] = {
+                    order: newPlayerOrder,
+                    x: positionX,
+                    y: 200,
+                    id: nextPlayerInfo.id,
+                    nickname: nextPlayerInfo.nickname
+                };
+                state.transition.newPlayerNickname = nextPlayerInfo.nickname;
+            }
         }
 
-        state.score = { 1: 0, 2: 0 };
-        state.transition.active = true;
-        state.transition.countdown = 5;
+        if (Object.keys(state.players).length === 2) {
+            state.score = {
+                1: 0,
+                2: 0
+            };
+            state.transition.active = true;
+            state.transition.countdown = 5;
+        }
 
         notifyAll({
-            type: 'update-players-and-queue',
-            players: state.players,
-            queue: state.queue,
-            score: state.score
+            type: 'updateState',
+            ...state
         });
-        
-        notifyAll({
-            type: 'update-game-transition',
-            transition: state.transition
-        });
+        if (state.transition.active) {
+            notifyAll({
+                type: 'update-game-transition',
+                transition: state.transition
+            });
+        }
     }
-    
+
     function tickCountdown() {
+        if (!state.transition.active) return;
         state.transition.countdown--;
-        
+
         if (state.transition.countdown <= 0) {
             state.transition.active = false;
             resetBall();
         }
-        
+
         notifyAll({
             type: 'update-game-transition',
             transition: state.transition
@@ -128,11 +164,14 @@ export default function buildGame() {
         state.ball.velocityX = (Math.random() > 0.5 ? 1 : -1) * 5;
         state.ball.velocityY = (Math.random() > 0.5 ? 1 : -1) * 5;
     }
-    
+
     function moveBall() {
-        if (state.transition.active) return;
-        
-        const { ball, players, score } = state;
+        if (state.transition.active || Object.keys(state.players).length < 2) return;
+
+        const {
+            ball,
+            players
+        } = state;
 
         ball.x += ball.velocityX;
         ball.y += ball.velocityY;
@@ -149,21 +188,24 @@ export default function buildGame() {
 
         let scored = false;
         if (ball.x + ball.width < 0) {
-            score[2]++;
+            state.score[2]++;
             scored = true;
         } else if (ball.x > 742) {
-            score[1]++;
+            state.score[1]++;
             scored = true;
         }
 
         if (scored) {
-            if (score[1] >= WINNING_SCORE) {
+            if (state.score[1] >= WINNING_SCORE) {
                 startNextGame(player2.id);
-            } else if (score[2] >= WINNING_SCORE) {
+            } else if (state.score[2] >= WINNING_SCORE) {
                 startNextGame(player1.id);
             } else {
                 resetBall();
-                notifyAll({ type: 'update-score', score: state.score });
+                notifyAll({
+                    type: 'updateState',
+                    ...state
+                });
             }
         }
 
@@ -174,13 +216,21 @@ export default function buildGame() {
                 if (Math.abs(ball.velocityX) > 15) ball.velocityX = Math.sign(ball.velocityX) * 15;
             }
         }
-        
-        notifyAll({ type: 'move-ball', ball: state.ball });
+        notifyAll({
+            type: 'updateState',
+            ...state
+        });
     }
-    
+
     function movePlayer(command) {
-        notifyAll(command);
-        const moves = { ArrowUp(p) { if(p.y>0) p.y-=5; }, ArrowDown(p) { if(p.y<430) p.y+=5; } };
+        const moves = {
+            ArrowUp(p) {
+                if (p.y > 0) p.y -= 5;
+            },
+            ArrowDown(p) {
+                if (p.y < 430) p.y += 5;
+            }
+        };
         const player = state.players[command.playerId];
         if (player && moves[command.keyPressed]) {
             moves[command.keyPressed](player);
